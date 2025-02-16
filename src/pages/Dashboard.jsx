@@ -32,11 +32,14 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Section B */}
-          <div className="bg-white/40 backdrop-blur-xl rounded-2xl shadow-lg p-6 relative overflow-hidden">
-            <div className="absolute top-4 left-4 text-xl font-bold text-primary/20">B</div>
+          {/* Financial Advisor */}
+          <div
+            className="bg-white/40 backdrop-blur-xl rounded-2xl shadow-lg p-6 relative overflow-hidden cursor-pointer"
+            onClick={() => navigate("/financial-advisor")}
+          >
+            <div className="absolute top-4 left-4 text-xl font-bold text-primary/20">Financial Advisor</div>
             <div className="w-full h-full flex items-center justify-center">
-              <span className="text-gray-500">Section B Content</span>
+              <span className="text-gray-500">Get financial advice</span>
             </div>
           </div>
 
