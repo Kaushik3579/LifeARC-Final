@@ -16,8 +16,29 @@ const FinancialAdvisor = () => {
       const stabilityAdvice = getFinancialStabilityAdvice(data);
       const risk = assessEventRisk(data);
       
+      // New: prompt for risk tolerance and calculate detailed advisor messages
+      const riskTolerance = window.prompt("Enter your risk tolerance (low/medium/high):", "medium") || "medium";
+      const advisorDetails = {
+        increaseSavings: getIncreaseSavingsAdvice(data.income, data.totalExpenses),
+        reduceExpenses: getReduceExpensesAdvice(data.totalExpenses),
+        investInStableAssets: getInvestInStableAssetsAdvice(riskTolerance),
+        getInsurance: getInsuranceAdvice(data.income, data.totalExpenses),
+        buildEmergencyFund: getBuildEmergencyFundAdvice(data.income)
+      };
+      
+      // Combine all suggestions into one array
+      const combinedSuggestions = [
+        ...suggestions,
+        ...stabilityAdvice,
+        `Increase Savings: ${advisorDetails.increaseSavings}`,
+        `Reduce Expenses: ${advisorDetails.reduceExpenses}`,
+        `Invest in Stable Assets: ${advisorDetails.investInStableAssets}`,
+        `Get Insurance: ${advisorDetails.getInsurance}`,
+        `Build Emergency Fund: ${advisorDetails.buildEmergencyFund}`
+      ];
+      
       setResults({
-        suggestions: [...suggestions, ...stabilityAdvice],
+        suggestions: combinedSuggestions,
         risk,
         eventSuggestion: EVENT_SUGGESTIONS[data.event] || "No specific recommendation for this event.",
         data
@@ -213,6 +234,61 @@ const assessEventRisk = (data) => {
   }
   
   return riskLevel;
+};
+
+// New: Advisor helper functions
+const getIncreaseSavingsAdvice = (income: number, totalExpenses: number): string => {
+  const savings = income - totalExpenses;
+  if (savings <= 0) {
+    return "You are spending more than you earn. Focus on reducing expenses first.";
+  }
+  return `Automate savings, cut non-essential costs, and set clear savings goals. Current savings: $${savings} per month.`;
+};
+
+const getReduceExpensesAdvice = (totalExpenses: number): string => {
+  return `Review subscriptions, switch to generic brands, and reduce discretionary spending. Current expenses: $${totalExpenses} per month.`;
+};
+
+// Updated: Enhanced getInvestInStableAssetsAdvice with additional suggestions
+const getInvestInStableAssetsAdvice = (riskTolerance: string): string => {
+  if (riskTolerance === "low") {
+    return `For low-risk investments, consider:
+1. Government bonds (e.g., U.S. Treasury bonds).
+2. High-yield savings accounts.
+3. Index funds or ETFs with a history of stable returns.
+4. Certificates of Deposit (CDs).
+5. Municipal bonds for local government backing.`;
+  } else if (riskTolerance === "medium") {
+    return `For medium-risk investments, consider:
+1. Dividend-paying stocks.
+2. Real Estate Investment Trusts (REITs).
+3. Balanced mutual funds.
+4. Corporate bonds.
+5. Peer-to-peer lending platforms for diversified income.`;
+  } else {
+    return `For high-risk investments, consider:
+1. Growth stocks.
+2. Cryptocurrencies.
+3. Commodities like gold or oil.
+4. Venture capital or startup investments.
+5. Emerging market stocks for rapid growth potential.`;
+  }
+};
+
+const getInsuranceAdvice = (income: number, totalExpenses: number): string => {
+  const insuranceSuggestions: string[] = [];
+  if (income > 5000) insuranceSuggestions.push("1. Term life insurance (e.g., from brands like State Farm or Prudential).");
+  if (totalExpenses > 3000) insuranceSuggestions.push("2. Health insurance (e.g., from brands like Blue Cross Blue Shield or UnitedHealthcare).");
+  if (income > 10000) insuranceSuggestions.push("3. Disability insurance (e.g., from brands like Guardian or Mutual of Omaha).");
+  if (insuranceSuggestions.length === 0) {
+    return "Based on your income and expenses, you may not need additional insurance at this time.";
+  }
+  return "Consider the following insurance options:\n" + insuranceSuggestions.join("\n");
+};
+
+const getBuildEmergencyFundAdvice = (income: number): string => {
+  const goal = income * 6;
+  return `Aim to save 3-6 months of expenses. Emergency fund goal: $${goal}.`;
 };
 
 export default FinancialAdvisor;
