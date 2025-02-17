@@ -4,6 +4,8 @@ import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { useToast } from "@/components/ui/use-toast";
 import { ChartBar, DollarSign, LockKeyhole } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { auth, provider, signInWithPopup, db, setDoc, doc } from "@/firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -18,9 +20,6 @@ const Index = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
     if (!formData.email || !formData.password) {
       toast({
         variant: "destructive",
@@ -28,11 +27,29 @@ const Index = () => {
         description: "Please fill in all fields",
       });
     } else {
-      toast({
-        title: "Success",
-        description: "Welcome back!",
-      });
-      navigate("/expenses");
+      try {
+        const userCredential = await signInWithEmailAndPassword(
+          auth,
+          formData.email,
+          formData.password
+        );
+        const user = userCredential.user;
+        await setDoc(doc(db, "users", user.uid), {
+          email: user.email,
+          uid: user.uid,
+        });
+        toast({
+          title: "Success",
+          description: "Welcome back!",
+        });
+        navigate("/expenses");
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error.message,
+        });
+      }
     }
 
     setIsLoading(false);
@@ -40,14 +57,26 @@ const Index = () => {
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
-    // Simulate Google auth
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    toast({
-      title: "Google Sign In",
-      description: "This feature will be connected to Google Auth soon!",
-    });
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      await setDoc(doc(db, "users", user.uid), {
+        email: user.email,
+        uid: user.uid,
+      });
+      toast({
+        title: "Google Sign In",
+        description: "Successfully signed in with Google!",
+      });
+      navigate("/expenses");
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    }
     setIsLoading(false);
-    navigate("/expenses");
   };
 
   return (
