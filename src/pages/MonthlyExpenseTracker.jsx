@@ -9,6 +9,8 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  LineChart,
+  Line
 } from "recharts";
 import {
   Select,
@@ -20,6 +22,13 @@ import {
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const MonthlyExpenseTracker = () => {
   const navigate = useNavigate();
@@ -27,6 +36,12 @@ const MonthlyExpenseTracker = () => {
   const [selectedYear, setSelectedYear] = useState("");
   const [expenseDetails, setExpenseDetails] = useState([]); // Stores ALL expenses
   const [formData, setFormData] = useState({ why: "", amount: "" });
+  const [editingExpense, setEditingExpense] = useState(null);
+  const [validationError, setValidationError] = useState("");
+  const [showComparison, setShowComparison] = useState(false);
+  const [monthsToCompare, setMonthsToCompare] = useState(1);
+  const [comparisonData, setComparisonData] = useState([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   useEffect(() => {
     const savedExpenses = localStorage.getItem("expenseDetails");
@@ -51,19 +66,76 @@ const MonthlyExpenseTracker = () => {
     "Travel", "Entertainment", "Medical", "Luxury", "Bonds", "Stocks", "Shares", "Fixed Deposits", "Real Estate", "Mutual Funds", "Cryptocurrency", "Gold"
   ];
 
+  const handleMonthChange = (value) => {
+    setSelectedMonth(value);
+    resetForm();
+  };
+
+  const handleYearChange = (value) => {
+    setSelectedYear(value);
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setFormData({ why: "", amount: "" });
+    setEditingExpense(null);
+    setValidationError("");
+  };
+
   const handleAddExpense = () => {
-    if (formData.why && formData.amount && selectedMonth && selectedYear) {
+    if (!formData.why || !formData.amount || !selectedMonth || !selectedYear) {
+      return;
+    }
+
+    const amount = parseFloat(formData.amount);
+    if (isNaN(amount) || amount <= 0) {
+      return;
+    }
+
+    if (editingExpense) {
+      setExpenseDetails(prevDetails =>
+        prevDetails.map(expense =>
+          expense.date === editingExpense.date
+            ? {
+                ...expense,
+                why: formData.why,
+                amount: amount,
+                month: selectedMonth,
+                year: selectedYear
+              }
+            : expense
+        )
+      );
+      setEditingExpense(null);
+    } else {
       const newExpense = {
-        ...formData,
-        amount: parseFloat(formData.amount),
+        why: formData.why,
+        amount: amount,
         month: selectedMonth,
         year: selectedYear,
-        date: new Date().toISOString(), // Add a timestamp for unique identification
+        date: new Date().toISOString(),
       };
-      setExpenseDetails((prevDetails) => [...prevDetails, newExpense]); // Add new expense to the list
-      setFormData({ why: "", amount: "" }); // Reset form fields
-    } else {
-      alert("Please fill in all fields and select a month and year.");
+      setExpenseDetails(prevDetails => [...prevDetails, newExpense]);
+    }
+
+    resetForm();
+  };
+
+  const handleEdit = (expense) => {
+    setEditingExpense(expense);
+    setFormData({
+      why: expense.why,
+      amount: expense.amount.toString()
+    });
+    setSelectedMonth(expense.month);
+    setSelectedYear(expense.year);
+  };
+
+  const handleDelete = (expenseToDelete) => {
+    if (window.confirm("Are you sure you want to delete this expense?")) {
+      setExpenseDetails(prevDetails =>
+        prevDetails.filter(expense => expense.date !== expenseToDelete.date)
+      );
     }
   };
 
@@ -84,8 +156,56 @@ const MonthlyExpenseTracker = () => {
     navigate("/"); // Navigate to the home page or login page
   };
 
+  // Add new function to generate comparison data
+  const generateComparisonData = (numMonths) => {
+    const currentDate = new Date();
+    const months = [];
+    let totalsByMonth = [];
+
+    // Generate last n months
+    for (let i = 0; i < numMonths; i++) {
+      const monthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+      const monthName = monthDate.toLocaleString('default', { month: 'long' });
+      const year = monthDate.getFullYear();
+      months.unshift({ month: monthName, year: year.toString() });
+    }
+
+    // Calculate totals for each month
+    totalsByMonth = months.map(({ month, year }) => {
+      const monthlyExpenses = expenseDetails.filter(
+        expense => expense.month === month && expense.year === year
+      );
+
+      const total = monthlyExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+      
+      return {
+        month: `${month.substr(0, 3)} ${year}`,
+        total: total
+      };
+    });
+
+    setComparisonData(totalsByMonth);
+  };
+
+  // Add handler for comparison months selection
+  const handleCompareMonths = (value) => {
+    const numMonths = parseInt(value);
+    setMonthsToCompare(numMonths);
+    generateComparisonData(numMonths);
+  };
+
+  const handleCompareButtonClick = () => {
+    setMonthsToCompare(1); // Reset to default
+    setComparisonData([]); // Clear previous data
+    setIsDialogOpen(true);
+  };
+
+  const handleDialogClose = () => {
+    setIsDialogOpen(false);
+  };
+
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+    <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 to-gray-100 p-6 relative">
       <div className="w-full max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
@@ -107,7 +227,7 @@ const MonthlyExpenseTracker = () => {
 
         {/* Month and Year Selectors */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <Select onValueChange={setSelectedMonth}>
+          <Select onValueChange={handleMonthChange} value={selectedMonth}>
             <SelectTrigger className="w-full bg-white text-black">
               <SelectValue placeholder="Select Month" />
             </SelectTrigger>
@@ -120,7 +240,7 @@ const MonthlyExpenseTracker = () => {
             </SelectContent>
           </Select>
 
-          <Select onValueChange={setSelectedYear}>
+          <Select onValueChange={handleYearChange} value={selectedYear}>
             <SelectTrigger className="w-full bg-white text-black">
               <SelectValue placeholder="Select Year" />
             </SelectTrigger>
@@ -158,10 +278,29 @@ const MonthlyExpenseTracker = () => {
           />
         </div>
 
-        {/* Add Expense Button */}
-        <Button onClick={handleAddExpense} className="mb-8 bg-black text-white">
-          Add Expense
-        </Button>
+        {/* Add/Update Expense Button with validation message */}
+        <div className="mb-8">
+          <Button 
+            onClick={handleAddExpense} 
+            className={`bg-black text-white ${(!formData.why || !formData.amount || !selectedMonth || !selectedYear) ? 'opacity-50' : ''}`}
+            disabled={!formData.why || !formData.amount || !selectedMonth || !selectedYear}
+          >
+            {editingExpense ? 'Update Expense' : 'Add Expense'}
+          </Button>
+          
+          {editingExpense && (
+            <Button 
+              onClick={() => {
+                setEditingExpense(null);
+                setFormData({ why: "", amount: "" });
+                setValidationError("");
+              }} 
+              className="ml-4 bg-gray-500 text-white"
+            >
+              Cancel Edit
+            </Button>
+          )}
+        </div>
 
         {/* Graph */}
         {filteredExpenses.length > 0 && (
@@ -195,14 +334,29 @@ const MonthlyExpenseTracker = () => {
                   <th className="px-4 py-2">Day</th>
                   <th className="px-4 py-2">Why</th>
                   <th className="px-4 py-2">Amount (₹)</th>
+                  <th className="px-4 py-2">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredExpenses.map((expense, index) => (
-                  <tr key={index}>
+                  <tr key={expense.date}>
                     <td className="border-t px-4 py-2">{index + 1}</td>
                     <td className="border-t px-4 py-2">{expense.why}</td>
                     <td className="border-t px-4 py-2">{expense.amount}</td>
+                    <td className="border-t px-4 py-2">
+                      <Button
+                        onClick={() => handleEdit(expense)}
+                        className="mr-2 bg-blue-500 text-white"
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        onClick={() => handleDelete(expense)}
+                        className="bg-red-500 text-white"
+                      >
+                        Delete
+                      </Button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -210,6 +364,71 @@ const MonthlyExpenseTracker = () => {
           </div>
         )}
       </div>
+
+      {/* Add Compare Button and Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogTrigger asChild>
+          <Button 
+            className="fixed bottom-6 right-6 bg-blue-500 hover:bg-blue-600 text-white rounded-full p-4 shadow-lg"
+            onClick={handleCompareButtonClick}
+          >
+            Compare Months
+          </Button>
+        </DialogTrigger>
+        <DialogContent 
+          className="sm:max-w-[600px] bg-white border-none shadow-xl" 
+          onInteractOutside={handleDialogClose}
+        >
+          <DialogHeader>
+            <DialogTitle className="text-gray-900">Compare Monthly Expenses</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 bg-white">
+            <Select 
+              onValueChange={handleCompareMonths} 
+              defaultValue="1"
+            >
+              <SelectTrigger className="w-full bg-white border border-gray-200">
+                <SelectValue placeholder="Select number of months to compare" />
+              </SelectTrigger>
+              <SelectContent className="bg-white border border-gray-200">
+                {[1, 2, 3, 4, 5, 6].map((num) => (
+                  <SelectItem key={num} value={num.toString()}>
+                    Last {num} {num === 1 ? 'month' : 'months'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {comparisonData.length > 0 && (
+              <div className="mt-4 h-[300px] bg-white p-2 rounded-lg">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={comparisonData} key={monthsToCompare}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        borderRadius: '8px',
+                        border: '1px solid #e2e8f0',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                      }}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="total"
+                      stroke="#8884d8"
+                      name="Total Expenses"
+                      key={monthsToCompare}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

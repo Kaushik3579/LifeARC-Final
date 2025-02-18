@@ -148,7 +148,7 @@ const Index = () => {
 
           <div className="pt-2">
             <Button
-              className="w-full h-12 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2"
+              className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2"
               disabled={isLoading}
             >
               {isLoading ? (

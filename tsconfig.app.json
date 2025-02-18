@@ -26,5 +26,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "scenario/family-budget-visionary/src/components/BudgetPlanner.jsx", "scenario/family-budget-visionary/src/components/BudgetScenario.jsx", "scenario/family-budget-visionary/src/components/BudgetSummary.jsx", "scenario/family-budget-visionary/src/components/CreateScenario.jsx", "scenario/family-budget-visionary/src/components/ExpenseInput.jsx", "scenario/family-budget-visionary/src/components/ScenarioPlanner.jsx", "scenario/family-budget-visionary/src/components/ScenarioResults.jsx"]
 }

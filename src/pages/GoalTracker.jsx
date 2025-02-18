@@ -69,7 +69,7 @@ const Index = () => {
             </NavigationMenuLink>
           </NavigationMenuItem>
           <NavigationMenuItem>
-            <NavigationMenuLink className="px-4 py-2 hover:bg-gray-100 rounded-md"  onClick={() => navigate('/monthly-tracker')}>
+            <NavigationMenuLink className="px-4 py-2 hover:bg-gray-100 rounded-md"  onClick={() => navigate('/scenario-planning')}>
               Current Status
             </NavigationMenuLink>
           </NavigationMenuItem>
