@@ -51,11 +51,14 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Section D */}
-          <div className="bg-white/40 backdrop-blur-xl rounded-2xl shadow-lg p-6 relative overflow-hidden">
-            <div className="absolute top-4 left-4 text-xl font-bold text-primary/20">D</div>
+          {/* Goal Tracker */}
+          <div
+            className="bg-white/40 backdrop-blur-xl rounded-2xl shadow-lg p-6 relative overflow-hidden cursor-pointer"
+            onClick={() => navigate("/goal-tracker")}
+          >
+            <div className="absolute top-4 left-4 text-xl font-bold text-primary/20">Goal Tracker</div>
             <div className="w-full h-full flex items-center justify-center">
-              <span className="text-gray-500">Section D Content</span>
+              <span className="text-gray-500">Track your goals</span>
             </div>
           </div>
         </div>
