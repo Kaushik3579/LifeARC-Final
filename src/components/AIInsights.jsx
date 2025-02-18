@@ -142,7 +142,7 @@ const AIInsights = ({ expenseData, goalData }) => {
     <div className="bg-white rounded-lg p-6 shadow-sm">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">AI Insights</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Goal Tracker</h2>
           <p className="text-sm text-gray-500">Smart recommendations based on your financial data</p>
         </div>
         <span className="text-sm text-blue-600 flex items-center gap-1">

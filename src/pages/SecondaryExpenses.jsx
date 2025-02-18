@@ -73,7 +73,7 @@ const SecondaryExpenses = () => {
     });
     
     setIsLoading(false);
-    navigate("/dashboard"); // Redirect to dashboard after form submission
+    navigate("/goal-tracker"); // Redirect to dashboard after form submission
   };
 
   const handleLogout = () => {
