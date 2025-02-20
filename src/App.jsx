@@ -12,6 +12,8 @@ import FinancialAdvisor from "@/pages/financial-advisor";
 import FinancialForm from "@/pages/FinancialForm";
 import GoalTracker from "@/pages/GoalTracker";
 import ScenarioPlanning from "@/pages/scenarioPlanning"; // Add this import
+import TaxEstimator from './pages/taxEstimator';
+import "@/styles/responsive.css";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +32,7 @@ const App = () => (
           <Route path="/financial-form" element={<FinancialForm />} />
           <Route path="/goal-tracker" element={<GoalTracker />} />
           <Route path="/scenario-planning" element={<ScenarioPlanning style={{ background: 'solid' }} />} /> {/* Update the ScenarioPlanning route */}
+          <Route path="/taxEstimator" element={<TaxEstimator />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

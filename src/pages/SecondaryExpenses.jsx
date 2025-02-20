@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
+import { db } from "@/firebase"; // Import Firebase instance
+import { collection, addDoc } from "firebase/firestore"; // Firestore functions
 
 const SecondaryExpenses = () => {
   const { toast } = useToast();
@@ -64,16 +66,30 @@ const SecondaryExpenses = () => {
       return;
     }
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    toast({
-      title: "Success",
-      description: "Your secondary expenses have been saved!",
-    });
-    
-    setIsLoading(false);
-    navigate("/goal-tracker"); // Redirect to dashboard after form submission
+    try {
+      // Save to Firestore
+      await addDoc(collection(db, "secondaryExpenses"), {
+        ...formData,
+        hasInvestments,
+        timestamp: new Date(),
+      });
+
+      toast({
+        title: "Success",
+        description: "Your secondary expenses have been saved!",
+      });
+
+      setIsLoading(false);
+      navigate("/goal-tracker"); // Redirect after saving
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to save data. Please try again.",
+      });
+      console.error("Error saving data:", error);
+      setIsLoading(false);
+    }
   };
 
   const handleLogout = () => {
@@ -186,8 +202,9 @@ const SecondaryExpenses = () => {
           <Button
             type="submit"
             className="w-full h-12 bg-black hover:bg-black/90 text-white rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2"
+            disabled={isLoading}
           >
-            Finish
+            {isLoading ? "Saving..." : "Finish"}
           </Button>
         </form>
       </div>

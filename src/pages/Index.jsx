@@ -4,7 +4,7 @@ import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { useToast } from "@/components/ui/use-toast";
 import { ChartBar, DollarSign, LockKeyhole } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { auth, provider, signInWithPopup, db, setDoc, doc } from "@/firebase";
+import { auth, provider, signInWithPopup, db, doc, getDoc, setDoc } from "@/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 
 const Index = () => {
@@ -16,6 +16,20 @@ const Index = () => {
     password: "",
   });
 
+  const handleSignIn = async (user) => {
+    const userDoc = await getDoc(doc(db, "users", user.uid));
+
+    if (userDoc.exists()) {
+      navigate("/goal-tracker"); // Existing user goes to GoalTracker
+    } else {
+      await setDoc(doc(db, "users", user.uid), {
+        email: user.email,
+        uid: user.uid,
+      });
+      navigate("/expenses"); // New user starts onboarding
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -26,30 +40,16 @@ const Index = () => {
         title: "Error",
         description: "Please fill in all fields",
       });
-    } else {
-      try {
-        const userCredential = await signInWithEmailAndPassword(
-          auth,
-          formData.email,
-          formData.password
-        );
-        const user = userCredential.user;
-        await setDoc(doc(db, "users", user.uid), {
-          email: user.email,
-          uid: user.uid,
-        });
-        toast({
-          title: "Success",
-          description: "Welcome back!",
-        });
-        navigate("/expenses");
-      } catch (error) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: error.message,
-        });
-      }
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      await handleSignIn(userCredential.user);
+      toast({ title: "Success", description: "Welcome back!" });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: error.message });
     }
 
     setIsLoading(false);
@@ -59,22 +59,10 @@ const Index = () => {
     setIsLoading(true);
     try {
       const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      await setDoc(doc(db, "users", user.uid), {
-        email: user.email,
-        uid: user.uid,
-      });
-      toast({
-        title: "Google Sign In",
-        description: "Successfully signed in with Google!",
-      });
-      navigate("/expenses");
+      await handleSignIn(result.user);
+      toast({ title: "Google Sign In", description: "Successfully signed in with Google!" });
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
+      toast({ variant: "destructive", title: "Error", description: error.message });
     }
     setIsLoading(false);
   };
@@ -122,15 +110,6 @@ const Index = () => {
           </Button>
         </div>
 
-        <div className="relative mb-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-4 text-gray-500 bg-white">Or continue with</span>
-          </div>
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-6">
           <FloatingLabelInput
             label="Email"
@@ -146,21 +125,19 @@ const Index = () => {
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
           />
 
-          <div className="pt-2">
-            <Button
-              className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  <LockKeyhole className="w-4 h-4" />
-                  Sign In
-                </>
-              )}
-            </Button>
-          </div>
+          <Button
+            className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <LockKeyhole className="w-4 h-4" />
+                Sign In
+              </>
+            )}
+          </Button>
         </form>
 
         <div className="mt-8 text-center">
@@ -170,13 +147,6 @@ const Index = () => {
               Sign up
             </a>
           </p>
-        </div>
-
-        <div className="absolute top-4 right-4 flex items-center gap-2">
-          <div className="flex items-center gap-1 text-sm text-green-500">
-            <DollarSign className="w-4 h-4" />
-            <span className="font-medium">1,234.56</span>
-          </div>
         </div>
       </div>
     </div>

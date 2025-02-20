@@ -1,0 +1,16 @@
+@media (max-width: 640px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    width: 100%;
+  }
+  h1.text-4xl {
+    font-size: 2rem;
+  }
+  h2.text-xl {
+    font-size: 1.25rem;
+  }
+  button, input, select {
+    font-size: 0.875rem;
+  }
+}

@@ -1,0 +1,52 @@
+/* slider.css */
+
+/* Target the slider container with the 'custom-slider' class */
+.custom-slider {
+    width: 100%;
+  }
+  
+  /* Override SliderPrimitive.Track (the track) */
+  .custom-slider [data-lov-name="SliderPrimitive.Track"] {
+    background-color: transparent !important; /* Clear default bg-secondary */
+    position: relative;
+    height: 4px; /* Increase thickness for visibility */
+    overflow: visible; /* Ensure track is visible */
+  }
+  
+  /* Create a solid black track directly (no pseudo-element to simplify) */
+  .custom-slider [data-lov-name="SliderPrimitive.Track"]::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background-color: #000 !important; /* Solid black track */
+    z-index: 0;
+    pointer-events: none;
+  }
+  
+  /* Override SliderPrimitive.Range (the filled portion of the track) */
+  .custom-slider [data-lov-name="SliderPrimitive.Range"] {
+    background-color: #000 !important; /* Black for filled portion to match track */
+    height: 4px; /* Ensure height matches track */
+    z-index: 1;
+  }
+  
+  /* Style the thumb (SliderPrimitive.Thumb) */
+  .custom-slider [data-lov-name="SliderPrimitive.Thumb"] {
+    background-color: #fff !important; /* White thumb */
+    border: 2px solid #000 !important; /* Black border for contrast */
+    width: 16px !important; /* Size adjustment for visibility */
+    height: 16px !important;
+    border-radius: 50% !important;
+    z-index: 2 !important;
+    cursor: pointer !important;
+  }
+  
+  /* Ensure thumb stays above track and handles focus/hover */
+  .custom-slider [data-lov-name="SliderPrimitive.Thumb"]:focus,
+  .custom-slider [data-lov-name="SliderPrimitive.Thumb"]:hover {
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.2) !important; /* Subtle focus/hover effect */
+  }

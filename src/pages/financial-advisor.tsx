@@ -1,12 +1,43 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import FinancialForm from "./FinancialForm";
 import ResultsDashboard from "../components/ResultsDashboard";
+import { auth, db, doc, getDoc } from "@/firebase"; // Import Firebase
 import { cn } from "@/lib/utils";
 
 const FinancialAdvisor = () => {
   const [results, setResults] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    income: '',
+    totalExpenses: '',
+    entertainment: '',
+    travel: '',
+    lifestyle: '',
+    medical: '',
+    inflationRate: '',
+    event: ''
+  });
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        const userDocRef = doc(db, "users", user.uid);
+        const userSnapshot = await getDoc(userDocRef);
+
+        if (userSnapshot.exists()) {
+          const userData = userSnapshot.data();
+          setFormData((prevData) => ({
+            ...prevData,
+            ...userData
+          }));
+        }
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   const handleFormSubmit = async (data) => {
     setIsSubmitting(true);
@@ -91,7 +122,7 @@ const FinancialAdvisor = () => {
           "transition-all duration-500 ease-in-out",
           results ? "scale-90 opacity-0 h-0 overflow-hidden" : "scale-100 opacity-100"
         )}>
-          <FinancialForm onSubmit={handleFormSubmit} isSubmitting={isSubmitting} />
+          <FinancialForm onSubmit={handleFormSubmit} isSubmitting={isSubmitting} initialData={formData} />
         </div>
 
         {results && (
