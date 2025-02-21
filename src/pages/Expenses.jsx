@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import FloatingLabelInput from "@/components/FloatingLabelInput";
 import { useToast } from "@/components/ui/use-toast";
 import { ChartBar, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { db } from "@/firebase"; // Import Firebase config
-import { collection, addDoc, serverTimestamp } from "firebase/firestore"; // Firestore functions
+import { collection, addDoc, serverTimestamp, doc, getDoc, setDoc } from "firebase/firestore"; // Firestore functions
 
 const Expenses = () => {
   const navigate = useNavigate();
@@ -26,11 +26,34 @@ const Expenses = () => {
     groceries: "",
   });
 
-  const handleChange = (field) => (e) => {
+  useEffect(() => {
+    const fetchData = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        const docRef = doc(db, "expenses", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setFormData(docSnap.data());
+        }
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleChange = (field) => async (e) => {
+    const value = e.target.value;
     setFormData((prev) => ({
       ...prev,
-      [field]: e.target.value,
+      [field]: value,
     }));
+
+    const user = auth.currentUser;
+    if (user) {
+      await setDoc(doc(db, "expenses", user.uid), {
+        ...formData,
+        [field]: value,
+      });
+    }
   };
 
   const handleSubmit = async (e) => {

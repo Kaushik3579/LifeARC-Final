@@ -4,6 +4,8 @@ import FinancialForm from "./FinancialForm";
 import ResultsDashboard from "../components/ResultsDashboard";
 import { auth, db, doc, getDoc } from "@/firebase"; // Import Firebase
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button"; // Add this import
+import { useNavigate } from "react-router-dom"; // Add this import
 
 const FinancialAdvisor = () => {
   const [results, setResults] = useState(null);
@@ -18,6 +20,8 @@ const FinancialAdvisor = () => {
     inflationRate: '',
     event: ''
   });
+
+  const navigate = useNavigate(); // Add this line
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -135,6 +139,11 @@ const FinancialAdvisor = () => {
             <ResultsDashboard results={results} onReset={() => setResults(null)} />
           </motion.div>
         )}
+
+        {/* Dashboard Button */}
+        <div className="absolute top-4 right-40">
+          <Button onClick={() => navigate("/goal-tracker")}>Dashboard</Button>
+        </div>
       </motion.div>
     </div>
   );
@@ -268,7 +277,7 @@ const assessEventRisk = (data) => {
 };
 
 // New: Advisor helper functions
-const getIncreaseSavingsAdvice = (income: number, totalExpenses: number): string => {
+const getIncreaseSavingsAdvice = (income, totalExpenses) => {
   const savings = income - totalExpenses;
   if (savings <= 0) {
     return "You are spending more than you earn. Focus on reducing expenses first.";
@@ -276,12 +285,12 @@ const getIncreaseSavingsAdvice = (income: number, totalExpenses: number): string
   return `Automate savings, cut non-essential costs, and set clear savings goals. Current savings: $${savings} per month.`;
 };
 
-const getReduceExpensesAdvice = (totalExpenses: number): string => {
+const getReduceExpensesAdvice = (totalExpenses) => {
   return `Review subscriptions, switch to generic brands, and reduce discretionary spending. Current expenses: $${totalExpenses} per month.`;
 };
 
 // Updated: Enhanced getInvestInStableAssetsAdvice with additional suggestions
-const getInvestInStableAssetsAdvice = (riskTolerance: string): string => {
+const getInvestInStableAssetsAdvice = (riskTolerance) => {
   if (riskTolerance === "low") {
     return `For low-risk investments, consider:
 1. Government bonds (e.g., U.S. Treasury bonds).
@@ -306,8 +315,8 @@ const getInvestInStableAssetsAdvice = (riskTolerance: string): string => {
   }
 };
 
-const getInsuranceAdvice = (income: number, totalExpenses: number): string => {
-  const insuranceSuggestions: string[] = [];
+const getInsuranceAdvice = (income, totalExpenses) => {
+  const insuranceSuggestions = [];
   if (income > 5000) insuranceSuggestions.push("1. Term life insurance (e.g., from brands like State Farm or Prudential).");
   if (totalExpenses > 3000) insuranceSuggestions.push("2. Health insurance (e.g., from brands like Blue Cross Blue Shield or UnitedHealthcare).");
   if (income > 10000) insuranceSuggestions.push("3. Disability insurance (e.g., from brands like Guardian or Mutual of Omaha).");
@@ -317,7 +326,7 @@ const getInsuranceAdvice = (income: number, totalExpenses: number): string => {
   return "Consider the following insurance options:\n" + insuranceSuggestions.join("\n");
 };
 
-const getBuildEmergencyFundAdvice = (income: number): string => {
+const getBuildEmergencyFundAdvice = (income) => {
   const goal = income * 6;
   return `Aim to save 3-6 months of expenses. Emergency fund goal: $${goal}.`;
 };

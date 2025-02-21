@@ -29,6 +29,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { doc, getDoc, setDoc } from "firebase/firestore"; // Firestore functions
+import { auth, db } from "@/firebase"; // Import Firebase instance
 
 const MonthlyExpenseTracker = () => {
   const navigate = useNavigate();
@@ -44,14 +46,28 @@ const MonthlyExpenseTracker = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   useEffect(() => {
-    const savedExpenses = localStorage.getItem("expenseDetails");
-    if (savedExpenses) {
-      setExpenseDetails(JSON.parse(savedExpenses));
-    }
+    const fetchData = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        const docRef = doc(db, "monthlyExpenses", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setExpenseDetails(docSnap.data().expenses || []);
+        }
+      }
+    };
+    fetchData();
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("expenseDetails", JSON.stringify(expenseDetails));
+    const saveData = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        const docRef = doc(db, "monthlyExpenses", user.uid);
+        await setDoc(docRef, { expenses: expenseDetails }, { merge: true });
+      }
+    };
+    saveData();
   }, [expenseDetails]);
 
   const months = [
@@ -82,7 +98,7 @@ const MonthlyExpenseTracker = () => {
     setValidationError("");
   };
 
-  const handleAddExpense = () => {
+  const handleAddExpense = async () => {
     if (!formData.why || !formData.amount || !selectedMonth || !selectedYear) {
       return;
     }
@@ -151,8 +167,6 @@ const MonthlyExpenseTracker = () => {
   }));
 
   const handleLogout = () => {
-    localStorage.removeItem("expenseDetails");
-    setExpenseDetails([]); // Clear all expense data on logout
     navigate("/"); // Navigate to the home page or login page
   };
 
@@ -204,6 +218,14 @@ const MonthlyExpenseTracker = () => {
     setIsDialogOpen(false);
   };
 
+  const handleChange = (field) => (e) => {
+    const value = e.target.value;
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 to-gray-100 p-6 relative">
       <div className="w-full max-w-7xl mx-auto">
@@ -223,6 +245,11 @@ const MonthlyExpenseTracker = () => {
           <Button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white">
             Logout
           </Button>
+        </div>
+
+        {/* Dashboard Button */}
+        <div className="absolute top-4 right-40">
+          <Button onClick={() => navigate("/goal-tracker")}>Dashboard</Button>
         </div>
 
         {/* Month and Year Selectors */}
@@ -273,7 +300,7 @@ const MonthlyExpenseTracker = () => {
             label="How much is the expense? (₹)"
             type="number"
             value={formData.amount}
-            onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+            onChange={handleChange("amount")}
             className="bg-white text-black"
           />
         </div>

@@ -1,8 +1,12 @@
-
 import { motion } from "framer-motion";
 import { ScenarioPlanner } from "../components/ScenarioPlanner";
+import { useNavigate } from "react-router-dom";
+import React from 'react';
+import { Button } from "@/components/ui/button"; // Add this import
 
 const ScenarioPlanning = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen bg-background">
       <motion.div
@@ -23,6 +27,7 @@ const ScenarioPlanning = () => {
           </p>
         </div>
         <ScenarioPlanner />
+        <Button onClick={() => navigate("/goal-tracker")}>Dashboard</Button>
       </motion.div>
     </div>
   );

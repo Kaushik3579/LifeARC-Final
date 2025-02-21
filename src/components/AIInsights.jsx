@@ -9,7 +9,7 @@ import {
 } from "../utils/financeUtils";
 import { toast } from "sonner";
 
-const AIInsights = ({ expenseData, goalData }) => {
+const AIInsights = ({ expenseData, goalData, monthlySavings, newSaving, setNewSaving, handleAddMonthlySaving }) => {
   const [insights, setInsights] = useState({
     progress: 0,
     targetAmount: 0,
@@ -20,34 +20,6 @@ const AIInsights = ({ expenseData, goalData }) => {
     spendingAnalysis: "",
     investmentAdvice: null,
   });
-
-  const [monthlySavings, setMonthlySavings] = useState({});
-  const [newSaving, setNewSaving] = useState({
-    month: "",
-    amount: "",
-  });
-
-  const handleAddMonthlySaving = (e) => {
-    e.preventDefault();
-    if (!newSaving.month || !newSaving.amount) {
-      toast.error("Please enter both month and savings amount");
-      return;
-    }
-
-    const amount = parseFloat(newSaving.amount);
-    if (isNaN(amount) || amount < 0) {
-      toast.error("Please enter a valid savings amount");
-      return;
-    }
-
-    setMonthlySavings(prev => ({
-      ...prev,
-      [newSaving.month]: amount
-    }));
-
-    setNewSaving({ month: "", amount: "" });
-    toast.success("Monthly savings recorded successfully!");
-  };
 
   const generateDetailedAnalysis = () => {
     const monthlyTarget = goalData.targetAmount / goalData.timeframe;

@@ -6,8 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { doc, getDoc, setDoc } from "firebase/firestore"; // Firestore functions
+import { auth } from "@/firebase"; // Add this import
 
-const FinancialForm = ({ onSubmit, isSubmitting }) => {
+const FinancialForm = ({ onSubmit = () => {}, isSubmitting = false }) => { // Use default parameters
   const navigate = useNavigate();
   const form = useForm({
     defaultValues: {
@@ -22,6 +25,32 @@ const FinancialForm = ({ onSubmit, isSubmitting }) => {
       event: "",
     },
   });
+
+  const [formData, setFormData] = useState(form.defaultValues);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        const docRef = doc(db, "financialForm", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setFormData(docSnap.data());
+          form.reset(docSnap.data()); // Reset form with fetched data
+        }
+      }
+    };
+    fetchData();
+  }, [form]);
+
+  const handleChange = (field) => (e) => {
+    const value = e.target.value;
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+    form.setValue(field, value); // Update form value
+  };
 
   const handleSubmit = (values) => {
     const numericValues = {
@@ -68,7 +97,7 @@ const FinancialForm = ({ onSubmit, isSubmitting }) => {
                 <FormItem>
                   <FormLabel>Monthly Income</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="0.00" {...field} />
+                    <Input type="number" placeholder="0.00" {...field} onChange={handleChange("income")} value={formData?.income || ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -83,7 +112,7 @@ const FinancialForm = ({ onSubmit, isSubmitting }) => {
                 <FormItem>
                   <FormLabel>Primary Expenses</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="0.00" {...field} />
+                    <Input type="number" placeholder="0.00" {...field} onChange={handleChange("primaryExpenses")} value={formData?.primaryExpenses || ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -98,7 +127,7 @@ const FinancialForm = ({ onSubmit, isSubmitting }) => {
                 <FormItem>
                   <FormLabel>Entertainment</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="0.00" {...field} />
+                    <Input type="number" placeholder="0.00" {...field} onChange={handleChange("entertainment")} value={formData?.entertainment || ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -113,7 +142,7 @@ const FinancialForm = ({ onSubmit, isSubmitting }) => {
                 <FormItem>
                   <FormLabel>Travel</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="0.00" {...field} />
+                    <Input type="number" placeholder="0.00" {...field} onChange={handleChange("travel")} value={formData?.travel || ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -128,7 +157,7 @@ const FinancialForm = ({ onSubmit, isSubmitting }) => {
                 <FormItem>
                   <FormLabel>Lifestyle</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="0.00" {...field} />
+                    <Input type="number" placeholder="0.00" {...field} onChange={handleChange("lifestyle")} value={formData?.lifestyle || ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -143,7 +172,7 @@ const FinancialForm = ({ onSubmit, isSubmitting }) => {
                 <FormItem>
                   <FormLabel>Medical</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="0.00" {...field} />
+                    <Input type="number" placeholder="0.00" {...field} onChange={handleChange("medical")} value={formData?.medical || ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -158,7 +187,7 @@ const FinancialForm = ({ onSubmit, isSubmitting }) => {
                 <FormItem>
                   <FormLabel>Other Expenses</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="0.00" {...field} />
+                    <Input type="number" placeholder="0.00" {...field} onChange={handleChange("otherExpenses")} value={formData?.otherExpenses || ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -173,7 +202,7 @@ const FinancialForm = ({ onSubmit, isSubmitting }) => {
                 <FormItem>
                   <FormLabel>Inflation Rate (%)</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="0.00" {...field} />
+                    <Input type="number" placeholder="0.00" {...field} onChange={handleChange("inflationRate")} value={formData?.inflationRate || ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -226,10 +255,6 @@ const FinancialForm = ({ onSubmit, isSubmitting }) => {
       </Form>
     </Card>
   );
-};
-
-FinancialForm.defaultProps = {
-  onSubmit: () => {},
 };
 
 export default FinancialForm;

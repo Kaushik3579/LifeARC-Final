@@ -35,6 +35,23 @@ const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 const db = getFirestore(app);
 
+const signInWithGoogle = async () => {
+  try {
+    const result = await signInWithPopup(auth, provider);
+    return result.user;
+  } catch (error) {
+    console.error("Error signing in with Google: ", error);
+  }
+};
+
+const signOutUser = async () => {
+  try {
+    await signOut(auth);
+  } catch (error) {
+    console.error("Error signing out: ", error);
+  }
+};
+
 // Export Firebase modules for easy use
 export { 
   app,
@@ -50,5 +67,7 @@ export {
   collection,
   query,
   where,
-  getDocs
+  getDocs,
+  signInWithGoogle,
+  signOutUser
 };

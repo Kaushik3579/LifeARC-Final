@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { useNavigate } from "react-router-dom";
 
 // Scraped Data (Simulated Web Scraping as of Feb 19, 2025)
 const scrapedData = {
@@ -82,6 +83,7 @@ const getRecommendations = (income, investments, deductions, capitalGains, usdIn
 };
 
 const TaxEstimator = () => {
+  const navigate = useNavigate();
   const [income, setIncome] = useState(0);
   const [investments, setInvestments] = useState(0);
   const [deductions, setDeductions] = useState(0);
@@ -231,6 +233,7 @@ const TaxEstimator = () => {
               </div>
             )}
           </div>
+          <Button onClick={() => navigate("/goal-tracker")}>Dashboard</Button>
         </CardContent>
       </Card>
     </div>
