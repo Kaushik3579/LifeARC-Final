@@ -7,10 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { doc, getDoc, setDoc } from "firebase/firestore"; // Firestore functions
-import { auth } from "@/firebase"; // Add this import
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { auth, db } from "@/firebase";
+import { toast } from "sonner";
 
-const FinancialForm = ({ onSubmit = () => {}, isSubmitting = false }) => { // Use default parameters
+const FinancialForm = ({ onSubmit = () => {}, isSubmitting = false }) => {
   const navigate = useNavigate();
   const form = useForm({
     defaultValues: {
@@ -26,54 +27,150 @@ const FinancialForm = ({ onSubmit = () => {}, isSubmitting = false }) => { // Us
     },
   });
 
-  const [formData, setFormData] = useState(form.defaultValues);
+  // Ensure formData is always an object by initializing with defaultValues
+  const [formData, setFormData] = useState(form.getValues());
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+
     const fetchData = async () => {
-      const user = auth.currentUser;
-      if (user) {
-        const docRef = doc(db, "financialForm", user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setFormData(docSnap.data());
-          form.reset(docSnap.data()); // Reset form with fetched data
-        }
+      try {
+        setLoading(true);
+        const unsubscribe = auth.onAuthStateChanged(async (user) => {
+          if (!user) {
+            toast.error("Please log in to view financial data");
+            if (mounted) setLoading(false);
+            return;
+          }
+
+          const primaryDocRef = doc(db, "expenses", user.uid);
+          const secondaryDocRef = doc(db, "secondaryExpenses", user.uid);
+          
+          const [primarySnap, secondarySnap] = await Promise.all([
+            getDoc(primaryDocRef),
+            getDoc(secondaryDocRef)
+          ]);
+
+          let primaryData = {};
+          let secondaryData = {};
+
+          if (primarySnap.exists()) {
+            primaryData = primarySnap.data();
+            console.log("Primary data:", primaryData);
+          }
+
+          if (secondarySnap.exists()) {
+            secondaryData = secondarySnap.data();
+            console.log("Secondary data:", secondaryData);
+          }
+
+          const primaryExpensesSum = Object.entries(primaryData)
+            .filter(([key]) => key !== "income")
+            .reduce((sum, [, value]) => sum + (parseFloat(value) || 0), 0);
+
+          const updatedFormData = {
+            income: primaryData.income || "",
+            primaryExpenses: primaryExpensesSum.toString() || "",
+            entertainment: secondaryData.entertainment || "",
+            travel: secondaryData.travel || "",
+            lifestyle: secondaryData.luxury || "",
+            medical: secondaryData.medical || "",
+            otherExpenses: "0",
+            inflationRate: "",
+            event: ""
+          };
+
+          if (mounted) {
+            setFormData(updatedFormData);
+            form.reset(updatedFormData);
+            toast.success("Financial data loaded successfully");
+          }
+        });
+
+        return () => unsubscribe();
+      } catch (error) {
+        console.error("Fetch error:", error);
+        toast.error("Error fetching financial data: " + error.message);
+      } finally {
+        if (mounted) setLoading(false);
       }
     };
+
     fetchData();
+
+    return () => {
+      mounted = false;
+    };
   }, [form]);
 
   const handleChange = (field) => (e) => {
-    const value = e.target.value;
+    const value = e.target ? e.target.value : e;
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
-    form.setValue(field, value); // Update form value
+    form.setValue(field, value);
   };
 
-  const handleSubmit = (values) => {
-    const numericValues = {
-      income: parseFloat(values.income),
-      primaryExpenses: parseFloat(values.primaryExpenses),
-      entertainment: parseFloat(values.entertainment),
-      travel: parseFloat(values.travel),
-      lifestyle: parseFloat(values.lifestyle),
-      medical: parseFloat(values.medical),
-      otherExpenses: parseFloat(values.otherExpenses),
-      inflationRate: parseFloat(values.inflationRate),
-      event: values.event,
-      totalExpenses: 
-        parseFloat(values.primaryExpenses) +
-        parseFloat(values.entertainment) +
-        parseFloat(values.travel) +
-        parseFloat(values.lifestyle) +
-        parseFloat(values.medical) +
-        parseFloat(values.otherExpenses),
-    };
-    onSubmit(numericValues);
-    navigate("/financial-advisor"); // Updated to an existing route
+  const handleSubmit = async (values) => {
+    try {
+      setLoading(true);
+      const user = auth.currentUser;
+      if (!user) {
+        toast.error("Please log in to save financial data");
+        return;
+      }
+
+      const numericValues = {
+        income: parseFloat(values.income) || 0,
+        primaryExpenses: parseFloat(values.primaryExpenses) || 0,
+        entertainment: parseFloat(values.entertainment) || 0,
+        travel: parseFloat(values.travel) || 0,
+        lifestyle: parseFloat(values.lifestyle) || 0,
+        medical: parseFloat(values.medical) || 0,
+        otherExpenses: parseFloat(values.otherExpenses) || 0,
+        inflationRate: parseFloat(values.inflationRate) || 0,
+        event: values.event,
+        totalExpenses: 
+          parseFloat(values.primaryExpenses) +
+          parseFloat(values.entertainment) +
+          parseFloat(values.travel) +
+          parseFloat(values.lifestyle) +
+          parseFloat(values.medical) +
+          parseFloat(values.otherExpenses),
+      };
+
+      const primaryExpensesData = {
+        income: values.income,
+      };
+
+      const secondaryExpensesData = {
+        entertainment: values.entertainment,
+        travel: values.travel,
+        luxury: values.lifestyle,
+        medical: values.medical,
+        timestamp: new Date().toISOString()
+      };
+
+      await Promise.all([
+        setDoc(doc(db, "expenses", user.uid), primaryExpensesData, { merge: true }),
+        setDoc(doc(db, "secondaryExpenses", user.uid), secondaryExpensesData, { merge: true })
+      ]);
+
+      onSubmit(numericValues);
+      navigate("/financial-advisor");
+      toast.success("Financial data saved successfully");
+    } catch (error) {
+      toast.error("Error saving financial data: " + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (loading) {
+    return <div className="p-6 text-center">Loading financial data...</div>;
+  }
 
   return (
     <Card className="p-6 backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 shadow-xl rounded-xl">
@@ -92,7 +189,7 @@ const FinancialForm = ({ onSubmit = () => {}, isSubmitting = false }) => { // Us
             <FormField
               control={form.control}
               name="income"
-              rules={{ required: "This field is required" }}  // Added required rule
+              rules={{ required: "This field is required" }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Monthly Income</FormLabel>
@@ -107,7 +204,7 @@ const FinancialForm = ({ onSubmit = () => {}, isSubmitting = false }) => { // Us
             <FormField
               control={form.control}
               name="primaryExpenses"
-              rules={{ required: "This field is required" }}  // Added required rule
+              rules={{ required: "This field is required" }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Primary Expenses</FormLabel>
@@ -122,7 +219,7 @@ const FinancialForm = ({ onSubmit = () => {}, isSubmitting = false }) => { // Us
             <FormField
               control={form.control}
               name="entertainment"
-              rules={{ required: "This field is required" }}  // Added required rule
+              rules={{ required: "This field is required" }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Entertainment</FormLabel>
@@ -137,7 +234,7 @@ const FinancialForm = ({ onSubmit = () => {}, isSubmitting = false }) => { // Us
             <FormField
               control={form.control}
               name="travel"
-              rules={{ required: "This field is required" }}  // Added required rule
+              rules={{ required: "This field is required" }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Travel</FormLabel>
@@ -152,7 +249,7 @@ const FinancialForm = ({ onSubmit = () => {}, isSubmitting = false }) => { // Us
             <FormField
               control={form.control}
               name="lifestyle"
-              rules={{ required: "This field is required" }}  // Added required rule
+              rules={{ required: "This field is required" }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Lifestyle</FormLabel>
@@ -167,7 +264,7 @@ const FinancialForm = ({ onSubmit = () => {}, isSubmitting = false }) => { // Us
             <FormField
               control={form.control}
               name="medical"
-              rules={{ required: "This field is required" }}  // Added required rule
+              rules={{ required: "This field is required" }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Medical</FormLabel>
@@ -182,7 +279,7 @@ const FinancialForm = ({ onSubmit = () => {}, isSubmitting = false }) => { // Us
             <FormField
               control={form.control}
               name="otherExpenses"
-              rules={{ required: "This field is required" }}  // Added required rule
+              rules={{ required: "This field is required" }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Other Expenses</FormLabel>
@@ -197,7 +294,7 @@ const FinancialForm = ({ onSubmit = () => {}, isSubmitting = false }) => { // Us
             <FormField
               control={form.control}
               name="inflationRate"
-              rules={{ required: "This field is required" }}  // Added required rule
+              rules={{ required: "This field is required" }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Inflation Rate (%)</FormLabel>
@@ -212,13 +309,13 @@ const FinancialForm = ({ onSubmit = () => {}, isSubmitting = false }) => { // Us
             <FormField
               control={form.control}
               name="event"
-              rules={{ required: "This field is required" }}  // Added required rule for dropdown
+              rules={{ required: "This field is required" }}
               render={({ field }) => (
                 <FormItem className="col-span-2">
                   <FormLabel>Financial Event</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={(value) => handleChange("event")(value)} value={formData.event || ""}>
                     <FormControl>
-                      <SelectTrigger > {/* Added solid background */}
+                      <SelectTrigger>
                         <SelectValue placeholder="Select a financial event" />
                       </SelectTrigger>
                     </FormControl>
@@ -247,8 +344,8 @@ const FinancialForm = ({ onSubmit = () => {}, isSubmitting = false }) => { // Us
             transition={{ delay: 0.5 }}
             className="flex justify-end"
           >
-            <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">
-              {isSubmitting ? "Analyzing..." : "Analyze Finances"}
+            <Button type="submit" disabled={isSubmitting || loading} className="w-full md:w-auto">
+              {isSubmitting || loading ? "Analyzing..." : "Analyze Finances"}
             </Button>
           </motion.div>
         </form>

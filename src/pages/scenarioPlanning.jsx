@@ -16,9 +16,7 @@ const ScenarioPlanning = () => {
         className="max-w-6xl mx-auto px-4 py-8"
       >
         <div className="text-center mb-12">
-          <span className="inline-block px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
-            Scenario Planner
-          </span>
+            
           <h1 className="text-4xl font-bold tracking-tight mb-4">
             Smart Scenario Planning
           </h1>

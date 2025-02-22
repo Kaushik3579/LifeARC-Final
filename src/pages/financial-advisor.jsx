@@ -115,11 +115,7 @@ const FinancialAdvisor = () => {
           </motion.p>
         </header>
 
-        <div className="dashboard mb-8">
-          <section className="section-b bg-white/40 backdrop-blur-xl rounded-2xl shadow-lg p-6 relative overflow-hidden cursor-pointer" onClick={handleFinancialAdvisioClick}>
-            <center><h2 className="text-xl font-bold text-primary/20">Financial Advisior</h2>
-            </center></section>
-        </div>
+        
 
         <div id="financial-form-section" className={cn(
           "max-w-4xl mx-auto bg-white/40 backdrop-blur-xl rounded-2xl shadow-lg p-6",
