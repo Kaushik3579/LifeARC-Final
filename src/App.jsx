@@ -19,31 +19,33 @@ import "@/styles/responsive.css";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <Router>
-        <ErrorBoundary>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/expenses" element={<Expenses />} />
-            <Route path="/secondary-expenses" element={<SecondaryExpenses />} />
-            <Route path="/monthly-tracker" element={<MonthlyExpenseTracker />} />
-            <Route path="/financial-advisor" element={<FinancialAdvisor />} />
-            <Route path="/financial-form" element={<FinancialForm />} />
-            <Route path="/goal-tracker" element={<GoalTracker />} />
-            <Route path="/scenario-planning" element={<ScenarioPlanning style={{ background: 'solid' }} />} /> {/* Update the ScenarioPlanning route */}
-            <Route path="/taxEstimator" element={<TaxEstimator />} />
-            <Route path="/profile" element={<Profile />} /> {/* Add the Profile route */}
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </ErrorBoundary>
-      </Router>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <Router>
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/expenses" element={<Expenses />} />
+              <Route path="/secondary-expenses" element={<SecondaryExpenses />} />
+              <Route path="/monthly-tracker" element={<MonthlyExpenseTracker />} />
+              <Route path="/financial-advisor" element={<FinancialAdvisor />} />
+              <Route path="/financial-form" element={<FinancialForm />} />
+              <Route path="/goal-tracker" element={<GoalTracker />} />
+              <Route path="/scenario-planning" element={<ScenarioPlanning style={{ background: 'solid' }} />} /> {/* Update the ScenarioPlanning route */}
+              <Route path="/taxEstimator" element={<TaxEstimator />} />
+              <Route path="/profile" element={<Profile />} /> {/* Add the Profile route */}
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </ErrorBoundary>
+        </Router>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

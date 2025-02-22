@@ -1,11 +1,37 @@
-import React from 'react';
+import { useState } from 'react';
 
 const FinancialForm = ({ onSubmit, isSubmitting }) => {
+  // Add state to manage form data
+  const [formData, setFormData] = useState({
+    income: '',
+    totalExpenses: '',
+    event: '',
+    inflationRate: '',
+    medical: ''
+  });
+
+  // Handle input changes
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prevState => ({
+      ...prevState,
+      [name]: value
+    }));
+  };
+
+  // Handle form submission
   const handleSubmit = (event) => {
     event.preventDefault();
-    const data = new FormData(event.target);
-    const formData = Object.fromEntries(data.entries());
+    // Pass the current form data to the parent component
     onSubmit(formData);
+    // Optional: Reset form after submission
+    setFormData({
+      income: '',
+      totalExpenses: '',
+      event: '',
+      inflationRate: '',
+      medical: ''
+    });
   };
 
   return (
@@ -19,6 +45,8 @@ const FinancialForm = ({ onSubmit, isSubmitting }) => {
             type="number"
             name="income"
             id="income"
+            value={formData.income}
+            onChange={handleChange}
             required
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           />
@@ -31,6 +59,8 @@ const FinancialForm = ({ onSubmit, isSubmitting }) => {
             type="number"
             name="totalExpenses"
             id="totalExpenses"
+            value={formData.totalExpenses}
+            onChange={handleChange}
             required
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           />
@@ -42,6 +72,8 @@ const FinancialForm = ({ onSubmit, isSubmitting }) => {
           <select
             name="event"
             id="event"
+            value={formData.event}
+            onChange={handleChange}
             required
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white"
           >
@@ -66,6 +98,8 @@ const FinancialForm = ({ onSubmit, isSubmitting }) => {
             type="number"
             name="inflationRate"
             id="inflationRate"
+            value={formData.inflationRate}
+            onChange={handleChange}
             required
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           />
@@ -78,6 +112,8 @@ const FinancialForm = ({ onSubmit, isSubmitting }) => {
             type="number"
             name="medical"
             id="medical"
+            value={formData.medical}
+            onChange={handleChange}
             required
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           />
@@ -87,7 +123,11 @@ const FinancialForm = ({ onSubmit, isSubmitting }) => {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
+            isSubmitting 
+              ? 'bg-indigo-400 cursor-not-allowed' 
+              : 'bg-indigo-600 hover:bg-indigo-700'
+          } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
         >
           {isSubmitting ? 'Submitting...' : 'Submit'}
         </button>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ChartBar } from "lucide-react";
 import {
   BarChart,
@@ -29,14 +29,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { doc, getDoc, setDoc } from "firebase/firestore"; // Firestore functions
-import { auth, db } from "@/firebase"; // Import Firebase instance
+import { doc, setDoc, onSnapshot } from "firebase/firestore";
+import { auth, db } from "@/firebase";
 
 const MonthlyExpenseTracker = () => {
   const navigate = useNavigate();
   const [selectedMonth, setSelectedMonth] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
-  const [expenseDetails, setExpenseDetails] = useState([]); // Stores ALL expenses
+  const [expenseDetails, setExpenseDetails] = useState([]);
   const [formData, setFormData] = useState({ why: "", amount: "" });
   const [editingExpense, setEditingExpense] = useState(null);
   const [validationError, setValidationError] = useState("");
@@ -44,31 +44,51 @@ const MonthlyExpenseTracker = () => {
   const [monthsToCompare, setMonthsToCompare] = useState(1);
   const [comparisonData, setComparisonData] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
+  // Real-time listener for Firebase data
   useEffect(() => {
-    const fetchData = async () => {
-      const user = auth.currentUser;
-      if (user) {
-        const docRef = doc(db, "monthlyExpenses", user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setExpenseDetails(docSnap.data().expenses || []);
-        }
+    const user = auth.currentUser;
+    if (!user) {
+      navigate("/"); // Redirect to login if not authenticated
+      return;
+    }
+
+    setLoading(true);
+    const docRef = doc(db, "monthlyExpenses", user.uid);
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data().expenses || [];
+        setExpenseDetails(data);
+      } else {
+        // Initialize document if it doesn't exist
+        setDoc(docRef, { expenses: [] }, { merge: true });
+        setExpenseDetails([]);
       }
-    };
-    fetchData();
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching expenses:", error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
+
+  const saveExpensesToFirebase = useCallback(async (updatedExpenses) => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      const docRef = doc(db, "monthlyExpenses", user.uid);
+      await setDoc(docRef, { 
+        expenses: updatedExpenses,
+        lastUpdated: new Date().toISOString()
+      }, { merge: true });
+    } catch (error) {
+      console.error("Error saving expenses:", error);
+      setValidationError("Failed to save expenses");
+    }
   }, []);
-
-  useEffect(() => {
-    const saveData = async () => {
-      const user = auth.currentUser;
-      if (user) {
-        const docRef = doc(db, "monthlyExpenses", user.uid);
-        await setDoc(docRef, { expenses: expenseDetails }, { merge: true });
-      }
-    };
-    saveData();
-  }, [expenseDetails]);
 
   const months = [
     "January", "February", "March", "April", "May", "June",
@@ -78,8 +98,10 @@ const MonthlyExpenseTracker = () => {
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
   const expenseOptions = [
-    "Housing", "Electricity", "Water", "Gas", "Mobile", "Insurance", "Loans", "Provident Fund", "Education", "Medication", "Groceries",
-    "Travel", "Entertainment", "Medical", "Luxury", "Bonds", "Stocks", "Shares", "Fixed Deposits", "Real Estate", "Mutual Funds", "Cryptocurrency", "Gold"
+    "Housing", "Electricity", "Water", "Gas", "Mobile", "Insurance", "Loans",
+    "Provident Fund", "Education", "Medication", "Groceries", "Travel",
+    "Entertainment", "Medical", "Luxury", "Bonds", "Stocks", "Shares",
+    "Fixed Deposits", "Real Estate", "Mutual Funds", "Cryptocurrency", "Gold"
   ];
 
   const handleMonthChange = (value) => {
@@ -100,29 +122,31 @@ const MonthlyExpenseTracker = () => {
 
   const handleAddExpense = async () => {
     if (!formData.why || !formData.amount || !selectedMonth || !selectedYear) {
+      setValidationError("All fields are required");
       return;
     }
 
     const amount = parseFloat(formData.amount);
     if (isNaN(amount) || amount <= 0) {
+      setValidationError("Please enter a valid amount");
       return;
     }
 
+    setValidationError("");
+    let updatedExpenses;
+
     if (editingExpense) {
-      setExpenseDetails(prevDetails =>
-        prevDetails.map(expense =>
-          expense.date === editingExpense.date
-            ? {
-                ...expense,
-                why: formData.why,
-                amount: amount,
-                month: selectedMonth,
-                year: selectedYear
-              }
-            : expense
-        )
+      updatedExpenses = expenseDetails.map(expense =>
+        expense.date === editingExpense.date
+          ? {
+              ...expense,
+              why: formData.why,
+              amount: amount,
+              month: selectedMonth,
+              year: selectedYear
+            }
+          : expense
       );
-      setEditingExpense(null);
     } else {
       const newExpense = {
         why: formData.why,
@@ -130,10 +154,13 @@ const MonthlyExpenseTracker = () => {
         month: selectedMonth,
         year: selectedYear,
         date: new Date().toISOString(),
+        createdAt: new Date().toISOString()
       };
-      setExpenseDetails(prevDetails => [...prevDetails, newExpense]);
+      updatedExpenses = [...expenseDetails, newExpense];
     }
 
+    setExpenseDetails(updatedExpenses);
+    await saveExpensesToFirebase(updatedExpenses);
     resetForm();
   };
 
@@ -147,36 +174,34 @@ const MonthlyExpenseTracker = () => {
     setSelectedYear(expense.year);
   };
 
-  const handleDelete = (expenseToDelete) => {
+  const handleDelete = async (expenseToDelete) => {
     if (window.confirm("Are you sure you want to delete this expense?")) {
-      setExpenseDetails(prevDetails =>
-        prevDetails.filter(expense => expense.date !== expenseToDelete.date)
+      const updatedExpenses = expenseDetails.filter(
+        expense => expense.date !== expenseToDelete.date
       );
+      setExpenseDetails(updatedExpenses);
+      await saveExpensesToFirebase(updatedExpenses);
     }
   };
 
-  // Filter expenses for the selected month and year
   const filteredExpenses = expenseDetails.filter(
     (expense) => expense.month === selectedMonth && expense.year === selectedYear
   );
 
-  // Format data for the bar chart
   const expenseData = filteredExpenses.map((expense) => ({
     name: expense.why,
     amount: expense.amount,
   }));
 
   const handleLogout = () => {
-    navigate("/"); // Navigate to the home page or login page
+    auth.signOut().then(() => navigate("/"));
   };
 
-  // Add new function to generate comparison data
   const generateComparisonData = (numMonths) => {
     const currentDate = new Date();
     const months = [];
     let totalsByMonth = [];
 
-    // Generate last n months
     for (let i = 0; i < numMonths; i++) {
       const monthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
       const monthName = monthDate.toLocaleString('default', { month: 'long' });
@@ -184,14 +209,11 @@ const MonthlyExpenseTracker = () => {
       months.unshift({ month: monthName, year: year.toString() });
     }
 
-    // Calculate totals for each month
     totalsByMonth = months.map(({ month, year }) => {
       const monthlyExpenses = expenseDetails.filter(
         expense => expense.month === month && expense.year === year
       );
-
       const total = monthlyExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-      
       return {
         month: `${month.substr(0, 3)} ${year}`,
         total: total
@@ -201,35 +223,26 @@ const MonthlyExpenseTracker = () => {
     setComparisonData(totalsByMonth);
   };
 
-  // Add handler for comparison months selection
   const handleCompareMonths = (value) => {
     const numMonths = parseInt(value);
     setMonthsToCompare(numMonths);
     generateComparisonData(numMonths);
   };
 
-  const handleCompareButtonClick = () => {
-    setMonthsToCompare(1); // Reset to default
-    setComparisonData([]); // Clear previous data
-    setIsDialogOpen(true);
-  };
-
-  const handleDialogClose = () => {
-    setIsDialogOpen(false);
-  };
-
   const handleChange = (field) => (e) => {
-    const value = e.target.value;
     setFormData((prev) => ({
       ...prev,
-      [field]: value,
+      [field]: e.target.value,
     }));
   };
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 to-gray-100 p-6 relative">
       <div className="w-full max-w-7xl mx-auto">
-        {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <div className="flex items-center justify-center w-12 h-12 bg-primary/5 rounded-xl">
             <ChartBar className="w-6 h-6 text-primary" />
@@ -240,19 +253,16 @@ const MonthlyExpenseTracker = () => {
           </div>
         </div>
 
-        {/* Logout Button */}
         <div className="absolute top-4 right-20">
           <Button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white">
             Logout
           </Button>
         </div>
 
-        {/* Dashboard Button */}
         <div className="absolute top-4 right-40">
           <Button onClick={() => navigate("/goal-tracker")}>Dashboard</Button>
         </div>
 
-        {/* Month and Year Selectors */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           <Select onValueChange={handleMonthChange} value={selectedMonth}>
             <SelectTrigger className="w-full bg-white text-black">
@@ -281,9 +291,8 @@ const MonthlyExpenseTracker = () => {
           </Select>
         </div>
 
-        {/* Expense Form */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <Select onValueChange={(value) => setFormData({ ...formData, why: value })}>
+          <Select onValueChange={(value) => setFormData({ ...formData, why: value })} value={formData.why}>
             <SelectTrigger className="w-full bg-white text-black">
               <SelectValue placeholder="Why is the expense?" />
             </SelectTrigger>
@@ -305,7 +314,10 @@ const MonthlyExpenseTracker = () => {
           />
         </div>
 
-        {/* Add/Update Expense Button with validation message */}
+        {validationError && (
+          <p className="text-red-500 mb-4">{validationError}</p>
+        )}
+
         <div className="mb-8">
           <Button 
             onClick={handleAddExpense} 
@@ -317,11 +329,7 @@ const MonthlyExpenseTracker = () => {
           
           {editingExpense && (
             <Button 
-              onClick={() => {
-                setEditingExpense(null);
-                setFormData({ why: "", amount: "" });
-                setValidationError("");
-              }} 
+              onClick={resetForm} 
               className="ml-4 bg-gray-500 text-white"
             >
               Cancel Edit
@@ -329,7 +337,6 @@ const MonthlyExpenseTracker = () => {
           )}
         </div>
 
-        {/* Graph */}
         {filteredExpenses.length > 0 && (
           <div className="bg-white/40 backdrop-blur-xl rounded-2xl shadow-lg p-6 w-full h-[500px] mb-8">
             <ResponsiveContainer width="100%" height="100%">
@@ -352,7 +359,6 @@ const MonthlyExpenseTracker = () => {
           </div>
         )}
 
-        {/* Expense Table */}
         {filteredExpenses.length > 0 && (
           <div className="bg-white/40 backdrop-blur-xl rounded-2xl shadow-lg p-6 w-full">
             <table className="w-full text-left">
@@ -390,72 +396,69 @@ const MonthlyExpenseTracker = () => {
             </table>
           </div>
         )}
-      </div>
 
-      {/* Add Compare Button and Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogTrigger asChild>
-          <Button 
-            className="fixed bottom-6 right-6 bg-blue-500 hover:bg-blue-600 text-white rounded-full p-4 shadow-lg"
-            onClick={handleCompareButtonClick}
-          >
-            Compare Months
-          </Button>
-        </DialogTrigger>
-        <DialogContent 
-          className="sm:max-w-[600px] bg-white border-none shadow-xl" 
-          onInteractOutside={handleDialogClose}
-        >
-          <DialogHeader>
-            <DialogTitle className="text-gray-900">Compare Monthly Expenses</DialogTitle>
-          </DialogHeader>
-          <div className="py-4 bg-white">
-            <Select 
-              onValueChange={handleCompareMonths} 
-              defaultValue="1"
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button 
+              className="fixed bottom-6 right-6 bg-blue-500 hover:bg-blue-600 text-white rounded-full p-4 shadow-lg"
+              onClick={() => setIsDialogOpen(true)}
             >
-              <SelectTrigger className="w-full bg-white border border-gray-200">
-                <SelectValue placeholder="Select number of months to compare" />
-              </SelectTrigger>
-              <SelectContent className="bg-white border border-gray-200">
-                {[1, 2, 3, 4, 5, 6].map((num) => (
-                  <SelectItem key={num} value={num.toString()}>
-                    Last {num} {num === 1 ? 'month' : 'months'}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              Compare Months
+            </Button>
+          </DialogTrigger>
+          <DialogContent 
+            className="sm:max-w-[600px] bg-white border-none shadow-xl"
+          >
+            <DialogHeader>
+              <DialogTitle className="text-gray-900">Compare Monthly Expenses</DialogTitle>
+            </DialogHeader>
+            <div className="py-4 bg-white">
+              <Select 
+                onValueChange={handleCompareMonths} 
+                defaultValue="1"
+              >
+                <SelectTrigger className="w-full bg-white border border-gray-200">
+                  <SelectValue placeholder="Select number of months to compare" />
+                </SelectTrigger>
+                <SelectContent className="bg-white border border-gray-200">
+                  {[1, 2, 3, 4, 5, 6].map((num) => (
+                    <SelectItem key={num} value={num.toString()}>
+                      Last {num} {num === 1 ? 'month' : 'months'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            {comparisonData.length > 0 && (
-              <div className="mt-4 h-[300px] bg-white p-2 rounded-lg">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={comparisonData} key={monthsToCompare}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'white',
-                        borderRadius: '8px',
-                        border: '1px solid #e2e8f0',
-                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                      }}
-                    />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="total"
-                      stroke="#8884d8"
-                      name="Total Expenses"
-                      key={monthsToCompare}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+              {comparisonData.length > 0 && (
+                <div className="mt-4 h-[300px] bg-white p-2 rounded-lg">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={comparisonData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'white',
+                          borderRadius: '8px',
+                          border: '1px solid #e2e8f0',
+                          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                        }}
+                      />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="total"
+                        stroke="#8884d8"
+                        name="Total Expenses"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 };

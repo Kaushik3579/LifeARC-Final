@@ -71,14 +71,14 @@ export const ScenarioResults = ({ scenarios = [], monthlyIncome = 0, totalExpens
                 <div className="flex justify-between items-center">
                   <span className="font-medium">{scenario.name || "Unknown"}</span>
                   <span className="text-sm text-primary">
-                    ${scenario.requiredMonthlySavings?.toFixed(2) || "0.00"}/month
+                  ₹{scenario.requiredMonthlySavings?.toFixed(2) || "0.00"}/month
                   </span>
                 </div>
                 <div className="text-sm text-muted-foreground mt-1">
                   {scenario.recommendation || "No recommendation available"}
                 </div>
                 <div className="text-sm text-muted-foreground mt-1">
-                  Total Cost: ${scenario.eventCost?.toFixed(2) || "0.00"} | Months:{" "}
+                  Total Cost: ₹{scenario.eventCost?.toFixed(2) || "0.00"} | Months:{" "}
                   {scenario.monthsToSave || "N/A"} | Deficit: $
                   {scenario.savingsDeficit?.toFixed(2) || "0.00"}
                 </div>

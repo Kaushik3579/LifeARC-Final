@@ -35,11 +35,11 @@ export const ScenarioPlanner = () => {
     const savings = parseFloat(monthlyIncome) - totalExpenses;
     const savingsDeficit = Math.max(0, parseFloat(savingsGoal) - savings);
 
-    let message = `Monthly Income: $${parseFloat(monthlyIncome).toFixed(2)}\n`;
-    message += `Total Expenses: $${totalExpenses.toFixed(2)}\n`;
-    message += `Savings: $${savings.toFixed(2)}\n`;
-    message += `Savings Goal: $${parseFloat(savingsGoal).toFixed(2)}\n`;
-    message += `Savings Deficit: $${savingsDeficit.toFixed(2)}`;
+    let message = `Monthly Income: ₹${parseFloat(monthlyIncome).toFixed(2)}\n`;
+    message += `Total Expenses: ₹${totalExpenses.toFixed(2)}\n`;
+    message += `Savings: ₹${savings.toFixed(2)}\n`;
+    message += `Savings Goal: ₹${parseFloat(savingsGoal).toFixed(2)}\n`;
+    message += `Savings Deficit: ₹${savingsDeficit.toFixed(2)}`;
 
     toast({
       title: "Budget Evaluation",
@@ -76,7 +76,7 @@ export const ScenarioPlanner = () => {
                 <Label htmlFor="monthlyIncome">Monthly Income</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                    $
+                  ₹
                   </span>
                   <Input
                     id="monthlyIncome"
@@ -92,7 +92,7 @@ export const ScenarioPlanner = () => {
                 <Label htmlFor="savingsGoal">Monthly Savings Goal</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                    $
+                  ₹
                   </span>
                   <Input
                     id="savingsGoal"
@@ -122,7 +122,7 @@ export const ScenarioPlanner = () => {
                   <Label htmlFor="expenseAmount">Amount</Label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                      $
+                    ₹
                     </span>
                     <Input
                       id="expenseAmount"
@@ -156,7 +156,7 @@ export const ScenarioPlanner = () => {
                     className="flex items-center justify-between p-3 bg-secondary rounded-lg"
                   >
                     <span className="font-medium">{category}</span>
-                    <span>${amount.toFixed(2)}</span>
+                    <span>₹{amount.toFixed(2)}</span>
                   </motion.div>
                 ))}
               </div>

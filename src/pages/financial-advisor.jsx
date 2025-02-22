@@ -168,7 +168,7 @@ const getFinancialStabilityAdvice = (data) => {
   const savingsRate = ((data.income - data.totalExpenses) / data.income) * 100;
   
   // 1. Increase Savings
-  stabilityAdvice.push(`💹 Increase Savings: ${
+  stabilityAdvice.push(`💹 Increase Savings: ₹ {
     savingsRate < 20 
       ? "Set up automatic savings transfers and aim for 20% of income. Current savings rate: " + savingsRate.toFixed(1) + "%"
       : "Great job maintaining savings! Consider increasing investments for better returns."
@@ -282,11 +282,11 @@ const getIncreaseSavingsAdvice = (income, totalExpenses) => {
   if (savings <= 0) {
     return "You are spending more than you earn. Focus on reducing expenses first.";
   }
-  return `Automate savings, cut non-essential costs, and set clear savings goals. Current savings: $${savings} per month.`;
+  return `Automate savings, cut non-essential costs, and set clear savings goals. Current savings: ₹${savings} per month.`;
 };
 
 const getReduceExpensesAdvice = (totalExpenses) => {
-  return `Review subscriptions, switch to generic brands, and reduce discretionary spending. Current expenses: $${totalExpenses} per month.`;
+  return `Review subscriptions, switch to generic brands, and reduce discretionary spending. Current expenses: ₹${totalExpenses} per month.`;
 };
 
 // Updated: Enhanced getInvestInStableAssetsAdvice with additional suggestions
@@ -328,7 +328,7 @@ const getInsuranceAdvice = (income, totalExpenses) => {
 
 const getBuildEmergencyFundAdvice = (income) => {
   const goal = income * 6;
-  return `Aim to save 3-6 months of expenses. Emergency fund goal: $${goal}.`;
+  return `Aim to save 3-6 months of expenses. Emergency fund goal: ₹${goal}.`;
 };
 
 export default FinancialAdvisor;

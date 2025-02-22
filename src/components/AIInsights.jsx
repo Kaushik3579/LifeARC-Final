@@ -174,7 +174,7 @@ const AIInsights = ({ expenseData, goalData, monthlySavings, newSaving, setNewSa
                 .map(([month, amount]) => (
                   <div key={month} className="flex justify-between text-sm">
                     <span>{new Date(month).toLocaleDateString(undefined, { year: 'numeric', month: 'long' })}</span>
-                    <span className="font-medium">${amount.toFixed(2)}</span>
+                    <span className="font-medium">₹{amount.toFixed(2)}</span>
                   </div>
                 ))}
             </div>
@@ -184,11 +184,11 @@ const AIInsights = ({ expenseData, goalData, monthlySavings, newSaving, setNewSa
         <div>
           <div className="flex justify-between text-sm mb-2">
             <span>Goal Progress</span>
-            <span>Target: ${insights.targetAmount?.toFixed(2) || '0.00'}</span>
+            <span>Target: ₹{insights.targetAmount?.toFixed(2) || '0.00'}</span>
           </div>
           <div className="flex justify-between text-sm mb-2">
             <span>Total Savings:</span>
-            <span>${insights.currentSavings?.toFixed(2) || '0.00'}</span>
+            <span>₹{insights.currentSavings?.toFixed(2) || '0.00'}</span>
           </div>
           <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
             <div
@@ -239,7 +239,7 @@ const AIInsights = ({ expenseData, goalData, monthlySavings, newSaving, setNewSa
               <div key={index} className="bg-gray-50 p-3 rounded-lg">
                 <div className="text-sm text-gray-600">{item.title}</div>
                 <div className={`text-lg font-semibold ${item.color || 'text-gray-900'}`}>
-                  ${item.value}
+                ₹{item.value}
                 </div>
               </div>
             ))}
@@ -256,7 +256,7 @@ const AIInsights = ({ expenseData, goalData, monthlySavings, newSaving, setNewSa
         <div className="space-y-2 pt-4 border-t">
           <div className="flex justify-between text-sm">
             <span>Required Monthly Savings:</span>
-            <span>${insights.monthlyTarget?.toFixed(2) || '0.00'}</span>
+            <span>₹{insights.monthlyTarget?.toFixed(2) || '0.00'}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span>Time to Goal:</span>

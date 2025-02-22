@@ -137,7 +137,7 @@ const TaxEstimator = () => {
             <TabsContent value="incomeTax" className="space-y-4">
               <label>Annual Income (₹): ₹{income.toLocaleString()}</label>
               <Slider min={0} max={5000000} step={10000} value={[income]} onValueChange={([val]) => setIncome(val)} className="custom-slider" />
-              <label>Foreign Income (USD): ${usdIncome.toLocaleString()}</label>
+              <label>Foreign Income ($): ₹{usdIncome.toLocaleString()}</label>
               <Slider min={0} max={100000} step={100} value={[usdIncome]} onValueChange={([val]) => setUsdIncome(val)} className="custom-slider" />
               {usdIncome > 0 && (
                 <p>Converted Foreign Income: ₹{usdConvertedIncome.toLocaleString()} (at ₹{scrapedData.usdToInr}/USD)</p>

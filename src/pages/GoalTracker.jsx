@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
-import { auth, db, doc, getDoc, setDoc, signInWithGoogle, signOutUser } from "@/firebase"; // Import Firebase
+import { auth, db, doc, getDoc, setDoc, signInWithGoogle, signOutUser } from "@/firebase";
 import ExpenseForm from "@/components/ExpenseForm";
 import ExpenseChart from "@/components/ExpenseChart";
 import SavingsGoal from "@/components/SavingsGoal";
@@ -12,10 +12,11 @@ import {
   NavigationMenuLink,
 } from "@/components/ui/navigation-menu";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button"; // Add this import
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"; // Add this import
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
-const Index = () => {
+const GoalTracker = () => {
   const navigate = useNavigate();
   const [expenseData, setExpenseData] = useState({
     income: 0,
@@ -42,30 +43,24 @@ const Index = () => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
         setUser(user);
+        fetchData(user.uid);
       } else {
-        navigate("/"); // Redirect to home or login page if not signed in
+        navigate("/");
       }
     });
     return () => unsubscribe();
   }, [navigate]);
 
-  // Fetch user expenses and goal data from Firebase
-  useEffect(() => {
-    const fetchData = async () => {
-      const user = auth.currentUser;
-      if (user) {
-        const docRef = doc(db, "goalTracker", user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setExpenseData(data.expenses || {});
-          setGoalData(data.goal || {});
-          setMonthlySavings(data.monthlySavings || {});
-        }
-      }
-    };
-    fetchData();
-  }, []);
+  const fetchData = async (uid) => {
+    const docRef = doc(db, "goalTracker", uid);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      setExpenseData(data.expenses || {});
+      setGoalData(data.goal || {});
+      setMonthlySavings(data.monthlySavings || {});
+    }
+  };
 
   const handleExpenseUpdate = async (data) => {
     setExpenseData(data);
@@ -138,7 +133,6 @@ const Index = () => {
       currentSavings: currentSavings > 0 ? currentSavings : 0,
     }));
 
-    // Record monthly savings in Firebase
     const recordMonthlySavings = async () => {
       const user = auth.currentUser;
       if (user) {
@@ -158,47 +152,65 @@ const Index = () => {
     };
 
     recordMonthlySavings();
-  }, [expenseData]);
+  }, [expenseData, monthlySavings]); // Added monthlySavings as dependency
 
   const handleSignOut = async () => {
     await signOutUser();
     setUser(null);
-    navigate("/"); // Redirect to home or login page after sign out
+    navigate("/");
   };
+
+  const monthOrder = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const goalProgressData = Object.entries(monthlySavings)
+    .map(([month, amount]) => {
+      const [year, monthName] = month.split("-");
+      return { month: `${monthName.substr(0, 3)} ${year}`, amount };
+    })
+    .sort((a, b) => {
+      const [aMonth, aYear] = a.month.split(" ");
+      const [bMonth, bYear] = b.month.split(" ");
+      return new Date(`${aYear}-${monthOrder.indexOf(aMonth) + 1}-01`) - new Date(`${bYear}-${monthOrder.indexOf(bMonth) + 1}-01`);
+    });
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <NavigationMenu className="max-w-screen-xl mx-auto mb-6">
         <NavigationMenuList>
           <NavigationMenuItem>
-            <NavigationMenuLink 
-              className="px-4 py-2 hover:bg-gray-100 rounded-md" 
+            <NavigationMenuLink
+              className="px-4 py-2 hover:bg-gray-100 rounded-md"
               onClick={() => navigate('/monthly-tracker')}
             >
               Monthly Expense Tracker
             </NavigationMenuLink>
           </NavigationMenuItem>
           <NavigationMenuItem>
-            <NavigationMenuLink className="px-4 py-2 hover:bg-gray-100 rounded-md" onClick={() => navigate('/financial-advisor')}>
+            <NavigationMenuLink 
+              className="px-4 py-2 hover:bg-gray-100 rounded-md" 
+              onClick={() => navigate('/financial-advisor')}
+            >
               Financial Advisor
             </NavigationMenuLink>
           </NavigationMenuItem>
           <NavigationMenuItem>
-            <NavigationMenuLink 
-              className="px-4 py-2 hover:bg-gray-100 rounded-md" 
+            <NavigationMenuLink
+              className="px-4 py-2 hover:bg-gray-100 rounded-md"
               onClick={() => navigate('/taxEstimator')}
             >
               Tax Estimator
             </NavigationMenuLink>
           </NavigationMenuItem>
           <NavigationMenuItem>
-            <NavigationMenuLink className="px-4 py-2 hover:bg-gray-100 rounded-md" onClick={() => navigate('/scenario-planning')}>
+            <NavigationMenuLink 
+              className="px-4 py-2 hover:bg-gray-100 rounded-md" 
+              onClick={() => navigate('/scenario-planning')}
+            >
               Current Status
             </NavigationMenuLink>
           </NavigationMenuItem>
         </NavigationMenuList>
       </NavigationMenu>
-
+      
       <div className="max-w-7xl mx-auto space-y-6">
         <header className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
@@ -211,12 +223,37 @@ const Index = () => {
           <div className="space-y-6">
             <ExpenseForm onUpdate={handleExpenseUpdate} />
             <SavingsGoal onUpdate={handleGoalUpdate} />
+            <div className="bg-white/40 backdrop-blur-xl rounded-2xl shadow-lg p-6 w-full h-[300px]">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Income vs Savings</h2>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={goalProgressData}>
+                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                      borderRadius: '8px',
+                      border: 'none',
+                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                    }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="amount" 
+                    stroke="#1E90FF" 
+                    strokeWidth={2} 
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
+          
           <div className="space-y-6">
-            <ExpenseChart data={expenseData} />  {/* Automatically updates */}
-            <AIInsights 
-              expenseData={expenseData} 
-              goalData={goalData} 
+            <ExpenseChart data={expenseData} />
+            <AIInsights
+              expenseData={expenseData}
+              goalData={goalData}
               monthlySavings={monthlySavings}
               newSaving={newSaving}
               setNewSaving={setNewSaving}
@@ -226,16 +263,23 @@ const Index = () => {
         </div>
       </div>
 
-      {/* User Info and Sign Out Button */}
       <div className="absolute top-4 right-4 flex items-center space-x-4">
         {user && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <img src={user.photoURL} alt="Profile" className="w-10 h-10 rounded-full cursor-pointer" />
+              <img 
+                src={user.photoURL} 
+                alt="Profile" 
+                className="w-10 h-10 rounded-full cursor-pointer" 
+              />
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => navigate("/profile")}>Profile</DropdownMenuItem>
-              <DropdownMenuItem onClick={handleSignOut}>Logout</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/profile")}>
+                Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSignOut}>
+                Logout
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         )}
@@ -244,4 +288,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default GoalTracker;

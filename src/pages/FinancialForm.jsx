@@ -218,11 +218,11 @@ const FinancialForm = ({ onSubmit = () => {}, isSubmitting = false }) => { // Us
                   <FormLabel>Financial Event</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger className="bg-white"> {/* Added solid background */}
+                      <SelectTrigger > {/* Added solid background */}
                         <SelectValue placeholder="Select a financial event" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <SelectContent className="bg-white dark:bg-gray-800 shadow-lg rounded-md">
                       <SelectItem value="child_education">Child Education</SelectItem>
                       <SelectItem value="child_marriage">Child Marriage</SelectItem>
                       <SelectItem value="buying_car">Buying a Car</SelectItem>
